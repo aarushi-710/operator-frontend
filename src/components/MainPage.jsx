@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../services/api';
 import Webcam from 'react-webcam';
 import * as faceapi from 'face-api.js';
 import '@tensorflow/tfjs-backend-webgl';
@@ -37,12 +37,9 @@ const MainPage = () => {
         ]);
         setModelsLoaded(true);
 
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
-
         const [operatorsRes, attendanceRes] = await Promise.all([
-          axios.get(`https://operator-backend-7ja7.onrender.com/api/operators/${line}`, { headers }),
-          axios.get(`https://operator-backend-7ja7.onrender.com/api/attendance/${line}/${new Date().toISOString().split('T')[0]}`, { headers }),
+          api.get(`/api/operators/${line}`),
+          api.get(`/api/attendance/${line}/${new Date().toISOString().split('T')[0]}`),
         ]);
 
         setOperators(operatorsRes.data || []);
@@ -108,7 +105,7 @@ const MainPage = () => {
         if (process.env.NODE_ENV !== 'production') {
           const formDataToSend = new FormData();
           formDataToSend.append('file', formData.file);
-          const uploadRes = await axios.post('https://operator-backend-7ja7.onrender.com/upload', formDataToSend, {
+          const uploadRes = await api.post('/upload', formDataToSend, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
           finalImagePath = uploadRes.data.imagePath;
@@ -123,15 +120,10 @@ const MainPage = () => {
           ledIndex: ledIndex,
         };
 
-        const res = await axios.post(
-          `https://operator-backend-7ja7.onrender.com/api/operators/${line}`,
+        const res = await api.post(
+          `/api/operators/${line}`,
           operatorData,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json',
-            },
-          }
+          { headers: { 'Content-Type': 'application/json' } }
         );
 
         setOperators([...operators, res.data]);
@@ -148,9 +140,7 @@ const MainPage = () => {
 
     const handleDeleteOperator = async (id) => {
       try {
-        await axios.delete(`https://operator-backend-7ja7.onrender.com/api/operators/${line}/${id}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        await api.delete(`/api/operators/${line}/${id}`);
         setOperators(operators.filter((op) => op._id !== id));
       } catch (error) {
         console.error('Error deleting operator:', error);
@@ -364,16 +354,13 @@ const MainPage = () => {
           .detectSingleFace(webcamRef.current.video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
-        const token = localStorage.getItem('token');
-        const headers = { Authorization: `Bearer ${token}` };
         const currentTimestamp = new Date().toISOString();
 
         if (!detection) {
           alert('No face detected in webcam feed.');
-          await axios.post(
-            `https://operator-backend-7ja7.onrender.com/api/attendance/${line}/fail`,
-            { station: selectedStation, timestamp: currentTimestamp },
-            { headers }
+          await api.post(
+            `/api/attendance/${line}/fail`,
+            { station: selectedStation, timestamp: currentTimestamp }
           );
           setIsRecognizing(false);
           return;
@@ -393,10 +380,9 @@ const MainPage = () => {
             };
             console.log('Sending attendance record:', attendanceRecord);
             try {
-              const response = await axios.post(
-                `https://operator-backend-7ja7.onrender.com/api/attendance/${line}`,
-                attendanceRecord,
-                { headers }
+              const response = await api.post(
+                `/api/attendance/${line}`,
+                attendanceRecord
               );
               setAttendance([...attendance, response.data]);
               alert(`Attendance marked successfully for ${matchedOperator.name} (distance: ${bestMatch.distance.toFixed(3)})`);
@@ -409,10 +395,9 @@ const MainPage = () => {
           }
         } else {
           alert('No suitable operator found for the detected face (no match >= 60%).');
-          await axios.post(
-            `https://operator-backend-7ja7.onrender.com/api/attendance/${line}/fail`,
-            { station: selectedStation, timestamp: currentTimestamp },
-            { headers }
+          await api.post(
+            `/api/attendance/${line}/fail`,
+            { station: selectedStation, timestamp: currentTimestamp }
           );
         }
       } catch (error) {
@@ -503,8 +488,7 @@ const MainPage = () => {
 
     const handleExport = async () => {
       try {
-        const response = await axios.get(`https://operator-backend-7ja7.onrender.com/api/attendance/${line}/${exportDate}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        const response = await api.get(`/api/attendance/${line}/${exportDate}`, {
           responseType: 'blob',
         });
         const url = window.URL.createObjectURL(new Blob([response.data]));

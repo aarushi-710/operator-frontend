@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { api } from '../services/api';
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -15,7 +15,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('https://operator-backend-7ja7.onrender.com/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         username,
         password,
         line,
