@@ -42,7 +42,7 @@ const MainPage = () => {
 
         const [operatorsRes, attendanceRes] = await Promise.all([
           axios.get(`https://operator-backend-7ja7.onrender.com/api/operators/${line}`, { headers }),
-          axios.get(`https://operator-backend-7ja7.onrender.com/${line}/${new Date().toISOString().split('T')[0]}`, { headers }),
+          axios.get(`https://operator-backend-7ja7.onrender.com/api/attendance/${line}/${new Date().toISOString().split('T')[0]}`, { headers }),
         ]);
 
         setOperators(operatorsRes.data || []);
