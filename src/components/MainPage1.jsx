@@ -418,16 +418,6 @@ const MainPage = () => {
       setIsRecognizing(true);
       try {
         await recognizeFace();
-
-        // After successful attendance marking
-        mqttService.publishAttendanceChange({
-          operatorName: formattedAttendance.operatorName,
-          employeeId: formattedAttendance.employeeId,
-          station: formattedAttendance.station,
-          status: formattedAttendance.status,
-          timestamp: formattedAttendance.timestamp
-        });
-
       } catch (error) {
         console.error('Error marking attendance:', error);
         alert('Error marking attendance');
