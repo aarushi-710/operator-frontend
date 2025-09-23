@@ -7,6 +7,8 @@ import '@tensorflow/tfjs-backend-webgl';
 import '@tensorflow/tfjs-backend-cpu';
 import { mqttService } from '../services/mqttService';
 
+//comment
+
 // Global error handling for uncaught promise errors
 window.addEventListener('unhandledrejection', function(event) {
   console.error('Unhandled promise rejection:', event.reason);
