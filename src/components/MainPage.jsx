@@ -21,6 +21,8 @@ const MainPage = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showMarkModal, setShowMarkModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showViewOperatorsModal, setShowViewOperatorsModal] = useState(false);
+  const [showErrorsModal, setShowErrorsModal] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [error, setError] = useState('');
   const webcamRef = useRef(null);
@@ -266,10 +268,8 @@ const MainPage = () => {
   };
 
   const MarkAttendanceModal = ({ onClose }) => {
-    const [selectedStation, setSelectedStation] = useState('');
     const [labeledDescriptors, setLabeledDescriptors] = useState([]);
     const [isRecognizing, setIsRecognizing] = useState(false);
-    const stations = [...new Set(operators.map((op) => op.station))];
 
     const startVideo = async () => {
       try {
@@ -291,17 +291,16 @@ const MainPage = () => {
     };
 
     useEffect(() => {
-      if (!selectedStation || !modelsLoaded) return;
+      if (!modelsLoaded) return;
 
       const loadDescriptors = async () => {
-        const stationOperators = operators.filter((op) => op.station === selectedStation);
-        if (stationOperators.length === 0) {
+        if (operators.length === 0) {
           setLabeledDescriptors([]);
           return;
         }
 
         const descriptors = await Promise.all(
-          stationOperators.map(async (op) => {
+          operators.map(async (op) => {
             try {
               // Use the frontend's base URL for deployed images
               const baseUrl = import.meta.env.VITE_FRONTEND_URL || '';
@@ -326,12 +325,12 @@ const MainPage = () => {
         const validDescriptors = descriptors.filter((d) => d !== null);
         setLabeledDescriptors(validDescriptors);
         if (validDescriptors.length === 0) {
-          alert('No valid face descriptors found for operators in this station.');
+          alert('No valid face descriptors found for operators.');
         }
       };
 
       loadDescriptors();
-    }, [selectedStation, modelsLoaded]);
+    }, [modelsLoaded]);
 
     const recognizeFace = async () => {
       if (!webcamRef.current || webcamRef.current.video.readyState !== 4) {
@@ -358,10 +357,6 @@ const MainPage = () => {
 
         if (!detection) {
           alert('No face detected in webcam feed.');
-          await api.post(
-            `/api/attendance/${line}/fail`,
-            { station: selectedStation, timestamp: currentTimestamp }
-          );
           setIsRecognizing(false);
           return;
         }
@@ -385,7 +380,7 @@ const MainPage = () => {
                 attendanceRecord
               );
               setAttendance([...attendance, response.data]);
-              alert(`Attendance marked successfully for ${matchedOperator.name} (distance: ${bestMatch.distance.toFixed(3)})`);
+              alert(`Attendance marked successfully for ${matchedOperator.name} at ${matchedOperator.station} (distance: ${bestMatch.distance.toFixed(3)})`);
             } catch (error) {
               console.error('Error marking attendance:', error);
               alert('Error marking attendance. Please try again.');
@@ -395,10 +390,6 @@ const MainPage = () => {
           }
         } else {
           alert('No suitable operator found for the detected face (no match >= 60%).');
-          await api.post(
-            `/api/attendance/${line}/fail`,
-            { station: selectedStation, timestamp: currentTimestamp }
-          );
         }
       } catch (error) {
         console.error('Error during face recognition:', error);
@@ -438,19 +429,7 @@ const MainPage = () => {
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center" onClick={onClose}>
         <div className="bg-white p-6 rounded shadow-lg w-3/4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <h2 className="text-xl font-bold mb-4">Mark Attendance</h2>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Select Station:</label>
-            <select
-              value={selectedStation}
-              onChange={(e) => setSelectedStation(e.target.value)}
-              className="border p-2 rounded w-full"
-            >
-              <option value="">-- Select Station --</option>
-              {stations.map((station, idx) => (
-                <option key={idx} value={station}>{station}</option>
-              ))}
-            </select>
-          </div>
+          <p className="text-gray-600 mb-4">Position your face in front of the camera. The system will automatically detect your identity and station.</p>
           <div className="mb-4">
             <Webcam
               audio={false}
@@ -462,8 +441,8 @@ const MainPage = () => {
           </div>
           <button
             onClick={handleMarkAttendance}
-            disabled={isRecognizing || !selectedStation}
-            className={`bg-blue-500 text-white px-4 py-2 rounded mb-4 ${isRecognizing || !selectedStation ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={isRecognizing}
+            className={`bg-blue-500 text-white px-4 py-2 rounded mb-4 ${isRecognizing ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isRecognizing ? 'Recognizing...' : 'Mark Attendance'}
           </button>
@@ -518,6 +497,110 @@ const MainPage = () => {
     );
   };
 
+  const ViewOperatorsModal = ({ onClose }) => {
+    const [selectedStation, setSelectedStation] = useState('');
+    const stations = [...new Set(operators.map((op) => op.station))];
+    const filteredOperators = selectedStation 
+      ? operators.filter((op) => op.station === selectedStation)
+      : operators;
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center" onClick={onClose}>
+        <div className="bg-white p-6 rounded shadow-lg w-4/5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <h2 className="text-xl font-bold mb-4">View Operators</h2>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Filter by Station:</label>
+            <select
+              value={selectedStation}
+              onChange={(e) => setSelectedStation(e.target.value)}
+              className="border p-2 rounded w-full"
+            >
+              <option value="">All Stations</option>
+              {stations.map((station, idx) => (
+                <option key={idx} value={station}>{station}</option>
+              ))}
+            </select>
+          </div>
+          <table className="min-w-full bg-white border">
+            <thead>
+              <tr>
+                <th className="py-2 px-4 border">Name</th>
+                <th className="py-2 px-4 border">Employee ID</th>
+                <th className="py-2 px-4 border">Station</th>
+                <th className="py-2 px-4 border">LED Index</th>
+                <th className="py-2 px-4 border">Image</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredOperators.map((op) => (
+                <tr key={op._id} className="border-t">
+                  <td className="py-2 px-4">{op.name}</td>
+                  <td className="py-2 px-4">{op.employeeId}</td>
+                  <td className="py-2 px-4">{op.station}</td>
+                  <td className="py-2 px-4">{op.ledIndex}</td>
+                  <td className="py-2 px-4">
+                    <img 
+                      src={`${import.meta.env.VITE_FRONTEND_URL || ''}${op.imagePath}`} 
+                      alt={op.name}
+                      className="w-16 h-16 object-cover rounded"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => setShowErrorsModal(true)} className="bg-red-500 text-white px-4 py-2 rounded">
+              View Errors
+            </button>
+            <button onClick={onClose} className="text-blue-500 hover:underline">Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ViewErrorsModal = ({ onClose }) => {
+    // Mock error data - replace with actual API call
+    const errors = [
+      { sNo: 1, errorCode: 'ERR001', headCount: 5 },
+      { sNo: 2, errorCode: 'ERR002', headCount: 3 },
+      { sNo: 3, errorCode: 'ERR003', headCount: 7 },
+      { sNo: 4, errorCode: 'ERR004', headCount: 2 },
+      { sNo: 5, errorCode: 'ERR005', headCount: 4 },
+    ];
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center" onClick={onClose}>
+        <div className="bg-white p-6 rounded shadow-lg w-4/5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <h2 className="text-xl font-bold mb-4">View Errors</h2>
+          <table className="min-w-full bg-white border">
+            <thead>
+              <tr>
+                <th className="py-2 px-4 border">S.No.</th>
+                <th className="py-2 px-4 border">Error Code</th>
+                <th className="py-2 px-4 border">Head Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {errors.map((error) => (
+                <tr key={error.sNo} className="border-t">
+                  <td className="py-2 px-4">{error.sNo}</td>
+                  <td className="py-2 px-4">{error.errorCode}</td>
+                  <td className="py-2 px-4">{error.headCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button onClick={onClose} className="mt-4 text-blue-500 hover:underline">Close</button>
+        </div>
+      </div>
+    );
+  };
+
   const displayDateTime = (timestamp) => {
     if (!timestamp) {
       console.warn('Timestamp is missing or undefined:', timestamp);
@@ -553,12 +636,15 @@ const MainPage = () => {
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Attendance System - Line {line}</h1>
       {error && <div className="text-red-500 mb-4">{error}</div>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <button onClick={() => setShowUpdateModal(true)} className="bg-blue-500 text-white px-4 py-2 rounded">
           Update Operators
         </button>
         <button onClick={() => setShowMarkModal(true)} className="bg-green-500 text-white px-4 py-2 rounded">
           Mark Attendance
+        </button>
+        <button onClick={() => setShowViewOperatorsModal(true)} className="bg-purple-500 text-white px-4 py-2 rounded">
+          View Operators
         </button>
         <button onClick={() => setShowExportModal(true)} className="bg-yellow-500 text-white px-4 py-2 rounded">
           Export Attendance
@@ -601,6 +687,8 @@ const MainPage = () => {
       </div>
       {showUpdateModal && <UpdateOperatorsModal onClose={() => setShowUpdateModal(false)} />}
       {showMarkModal && <MarkAttendanceModal onClose={() => setShowMarkModal(false)} />}
+      {showViewOperatorsModal && <ViewOperatorsModal onClose={() => setShowViewOperatorsModal(false)} />}
+      {showErrorsModal && <ViewErrorsModal onClose={() => setShowErrorsModal(false)} />}
       {showExportModal && <ExportAttendanceModal onClose={() => setShowExportModal(false)} />}
     </div>
   );
