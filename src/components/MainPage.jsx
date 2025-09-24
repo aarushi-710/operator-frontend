@@ -214,26 +214,27 @@ const MainPage = () => {
                   required
                 >
                   <option value="">Select Station</option>
-                  <option value="Station 1">Main Board VI</option>
-                  <option value="Station 2">Sub board VI</option>
-                  <option value="Station 3">LDA Inspection</option>
-                  <option value="Station 4">Front camera copper foil paste</option>
-                  <option value="Station 5">Front camera installation</option>
-                  <option value="Station 6">Rear camera installation</option>
-                  <option value="Station 7">IDLE</option>
-                  <option value="Station 8">Middle Frame Installation (1)</option>
-                  <option value="Station 9">Middle Frame Installation (2)</option>
-                  <option value="Station 10">Key Part 3 (1)</option>
-                  <option value="Station 11">Key Part 3 (2)</option>
-                  <option value="Station 12">YH2</option>
-                  <option value="Station 13">Middle Frame Inspection</option>
-                  <option value="Station 14">Battery cover Pressing (1)</option>
-                  <option value="Station 15">Battery cover Pressing (2)</option>
-                  <option value="Station 16">Battery cover VI (1)</option>
-                  <option value="Station 17">Battery cover VI (2)</option>
-                  <option value="Station 18">Vibrator installation</option>
-                  <option value="Station 19">Speaker installation</option>
-                  <option value="Station 20">Receiver installation</option>
+                  <option value="Main Board VI">Main Board VI</option>
+                  <option value="Sub board VI">Sub board VI</option>
+                  <option value="LDA Inspection">LDA Inspection</option>
+                  <option value="Front camera copper foil paste">Front camera copper foil paste</option>
+                  <option value="Front camera installation">Front camera installation</option>
+                  <option value="Rear camera installation">Rear camera installation</option>
+                  <option value="IDLE">IDLE</option>
+                  <option value="Middle Frame Installation (1)">Middle Frame Installation (1)</option>
+                  <option value="Middle Frame Installation (2)">Middle Frame Installation (2)</option>
+                  <option value="Key Part 3 (1)">Key Part 3 (1)</option>
+                  <option value="Key Part 3 (2)">Key Part 3 (2)</option>
+                  <option value="YH2">YH2</option>
+                  <option value="Middle Frame Inspection">Middle Frame Inspection</option>
+                  <option value="Battery cover Pressing (1)">Battery cover Pressing (1)</option>
+                  <option value="Battery cover Pressing (2)">Battery cover Pressing (2)</option>
+                  <option value="Battery cover VI (1)">Battery cover VI (1)</option>
+                  <option value="Battery cover VI (2)">Battery cover VI (2)</option>
+                  <option value="Aging">Aging</option>
+                  <option value="Vibrator installation">Vibrator installation</option>
+                  <option value="Speaker installation">Speaker installation</option>
+                  <option value="Receiver installation">Receiver installation</option>
                 </select>
                 <select
                   value={formData.ledIndex}
